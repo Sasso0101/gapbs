@@ -115,17 +115,18 @@ void BenchmarkKernel(const CLApp &cli, const GraphT_ &g,
   double total_seconds = 0;
   Timer trial_timer;
 
-  #ifdef USE_PAPI
-  int retval;
-  
-  retval = PAPI_hl_region_begin("computation");
-  if ( retval != PAPI_OK )
-    handle_error(retval);
-  #endif
-
   for (int iter=0; iter < cli.num_trials(); iter++) {
     #ifndef USE_PAPI
     trial_timer.Start();
+    #endif
+    #ifdef USE_PAPI
+    if (iter == 2) { // skip first two iterations
+      int retval;
+      
+      retval = PAPI_hl_region_begin("computation");
+      if ( retval != PAPI_OK )
+        handle_error(retval);
+    }
     #endif
     auto result = kernel(g);
     #ifndef USE_PAPI
