@@ -17,6 +17,11 @@
 #include "util.h"
 #include "writer.h"
 
+#ifdef USE_PAPI
+extern "C" {
+#include "papi.h"
+}
+#endif
 
 /*
 GAP Benchmark Suite
@@ -93,6 +98,12 @@ bool VerifyUnimplemented(...) {
   return false;
 }
 
+#ifdef USE_PAPI
+void handle_error(int retval) {
+  std::cout << "PAPI error " << PAPI_strerror(retval) << std::endl;
+  exit(1);
+}
+#endif
 
 // Calls (and times) kernel according to command line arguments
 template<typename GraphT_, typename GraphFunc, typename AnalysisFunc,
@@ -103,9 +114,21 @@ void BenchmarkKernel(const CLApp &cli, const GraphT_ &g,
   g.PrintStats();
   double total_seconds = 0;
   Timer trial_timer;
+
+  #ifdef USE_PAPI
+  int retval;
+  
+  retval = PAPI_hl_region_begin("computation");
+  if ( retval != PAPI_OK )
+    handle_error(retval);
+  #endif
+
   for (int iter=0; iter < cli.num_trials(); iter++) {
+    #ifndef USE_PAPI
     trial_timer.Start();
+    #endif
     auto result = kernel(g);
+    #ifndef USE_PAPI
     trial_timer.Stop();
     PrintTime("Trial Time", trial_timer.Seconds());
     total_seconds += trial_timer.Seconds();
@@ -118,8 +141,15 @@ void BenchmarkKernel(const CLApp &cli, const GraphT_ &g,
       trial_timer.Stop();
       PrintTime("Verification Time", trial_timer.Seconds());
     }
+    #endif
   }
+  #ifdef USE_PAPI
+  retval = PAPI_hl_region_end("computation");
+  if ( retval != PAPI_OK )
+    handle_error(retval);
+  #else
   PrintTime("Average Time", total_seconds / cli.num_trials());
+  #endif
 }
 
 #endif  // BENCHMARK_H_

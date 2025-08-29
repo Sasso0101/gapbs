@@ -1,7 +1,11 @@
 # See LICENSE.txt for license details.
 
-CXX_FLAGS += -std=c++11 -O3 -Wall
+CXX_FLAGS += -std=c++17 -O3 -Wall
 PAR_FLAG = -fopenmp
+
+ifeq ($(USE_PAPI), 1)
+	CXX_FLAGS += -DUSE_PAPI -lpapi -I${PAPI_DIR}/include -L${PAPI_DIR}/lib
+endif
 
 ifneq (,$(findstring icpc,$(CXX)))
 	PAR_FLAG = -openmp
