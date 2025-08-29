@@ -1,6 +1,6 @@
 # See LICENSE.txt for license details.
 
-CXX_FLAGS += -std=c++17 -O3 -Wall
+CXX_FLAGS += -std=c++11 -O3 -Wall
 PAR_FLAG = -fopenmp
 
 ifeq ($(USE_PAPI), 1)
