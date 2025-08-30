@@ -16,6 +16,7 @@
 #include "timer.h"
 #include "util.h"
 #include "writer.h"
+#include "omp.h"
 
 #ifdef USE_PAPI
 extern "C" {
@@ -121,11 +122,12 @@ void BenchmarkKernel(const CLApp &cli, const GraphT_ &g,
     #endif
     #ifdef USE_PAPI
     if (iter == 2) { // skip first two iterations
-      int retval;
-      
-      retval = PAPI_hl_region_begin("computation");
-      if ( retval != PAPI_OK )
-        handle_error(retval);
+      #pragma omp parallel // ensure all threads created before region
+      {
+        int retval = PAPI_hl_region_begin("computation");
+        if ( retval != PAPI_OK )
+          handle_error(retval);
+      }
     }
     #endif
     auto result = kernel(g);
@@ -145,9 +147,12 @@ void BenchmarkKernel(const CLApp &cli, const GraphT_ &g,
     #endif
   }
   #ifdef USE_PAPI
-  retval = PAPI_hl_region_end("computation");
-  if ( retval != PAPI_OK )
-    handle_error(retval);
+  #pragma omp parallel // ensure all threads created before region
+  {
+    int retval = PAPI_hl_region_end("computation");
+    if ( retval != PAPI_OK )
+      handle_error(retval);
+  }
   #else
   PrintTime("Average Time", total_seconds / cli.num_trials());
   #endif
